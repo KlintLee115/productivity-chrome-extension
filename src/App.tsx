@@ -1,29 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import './index.css'
 
-type MainProps = {
-  changePage: (pageName: string) => void
-  timeElapsed: number
-  timerRunning: boolean
-};
-
-function Main({ changePage, timeElapsed, timerRunning }: MainProps): JSX.Element {
-
-  const startStopButtonClicked = () => chrome.runtime.sendMessage({ command: 'toggleTimer' });
+function Main({ changePage }: {  changePage: (pageName: string) => void}): JSX.Element {
 
   return (
-    <>
-      <p className='text-base mx-auto w-fit'>Stay productive</p>
-      <p className='text-base'>Time elapsed: {timeElapsed}s</p>
-      <div className='flex items-center mt-[3vh]'>
-        <button style={{ flexGrow: 4 }} className={`text-xl ${timerRunning ? 'bg-red-500' : 'bg-green-300'}`} onClick={startStopButtonClicked}>{timerRunning ? "Stop" : "Start"}</button>
-        <i onClick={() => changePage('Options')} className="cursor-pointer fa fa-gear text-2xl"></i>
-      </div>
-    </>
+    <div className='flex'>
+      <p className='text-2xl mx-auto w-fit'>Stay productive</p>
+      <button onClick={() => changePage('Options')} className="cursor-pointer fa fa-gear text-2xl"></button>
+    </div>
   )
 }
 
-function Options({changePage}: { changePage: (page: string) => void }): JSX.Element {
+function Options({ changePage }: { changePage: (page: string) => void }): JSX.Element {
 
   const [allowedWebsites, setAllowedWebsites] = useState<string[]>([])
   const [enableAddAllowedUrlInput, setIsEnableAddAllowedUrlInput] = useState<boolean>(false)
@@ -49,8 +37,8 @@ function Options({changePage}: { changePage: (page: string) => void }): JSX.Elem
   }, [allowedWebsites]);
 
   return <>
-    <p className='text-xl' onClick={() => changePage('Main')}>Back</p>
-    <div className='flex justify-between mt-[5vh]'>
+    <p className='text-4xl cursor-pointer' style={{lineHeight:"2rem"}} onClick={() => changePage('Main')}>&#x2190;</p>
+    <div className='flex justify-between my-[5vh]'>
       <h2 className='text-lg'>Allowed websites</h2>
       <p className='text-lg cursor-pointer' onClick={() => setIsEnableAddAllowedUrlInput(true)}>+</p>
     </div>
@@ -67,8 +55,6 @@ function Options({changePage}: { changePage: (page: string) => void }): JSX.Elem
 }
 
 function App() {
-  const [timeElapsed, setTimeElapsed] = useState<number>(0);
-  const [timerRunning, setTimerRunning] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<string>('Main');
 
   const changePage = (pageName: string) => setCurrentPage(pageName)
@@ -77,11 +63,7 @@ function App() {
 
   switch (currentPage) {
     case 'Main':
-      PageComponent = <Main
-        changePage={changePage}
-        timeElapsed={timeElapsed}
-        timerRunning={timerRunning}
-      />;
+      PageComponent = <Main changePage={changePage}/>;
       break;
     case 'Options':
       PageComponent = <Options changePage={changePage} />;
@@ -89,20 +71,6 @@ function App() {
     default:
       PageComponent = <div>Page not found</div>;
   }
-
-  useEffect(() => {
-    const handleMessage = (request: any) => {
-      if (request.timeElapsed !== undefined) {
-        setTimeElapsed(request.timeElapsed);
-        setTimerRunning(request.timerRunning);
-      }
-    };
-
-    chrome.runtime.onMessage.addListener(handleMessage);
-    chrome.runtime.sendMessage({ command: 'getTime' });
-
-    return () => chrome.runtime.onMessage.removeListener(handleMessage);
-  }, []);
 
   return (
     <div className='bg-orange-200 px-[2vw] w-[15rem] max-h-[20rem]'>
@@ -113,30 +81,3 @@ function App() {
 
 
 export default App
-
-
-  // port.onAlarm.addListener((alarm) => {
-  //   if (alarm.name === "timer" && timerRunning) {
-  //     chrome.storage.local.get("timeElapsed", (data) => {
-  //       let timeElapsed = data.timeElapsed || 0;
-  //       timeElapsed += 1;
-  //       chrome.storage.local.set({ timeElapsed });
-  //     });
-  //   }
-  // });
-
-  // chrome.storage.local.set({ timeElapsed: 0, timerRunning: false });
-  // chrome.alarms.create("timer", { periodInMinutes: 1 / 60 });
-
-  // Listen for messages from other parts of the extension.
-  // port.onMessage.addListener((message, sender, sendResponse) => {
-  //   if (message.command === 'toggleTimer') {
-  //     timerRunning = !timerRunning;
-  //     chrome.storage.local.set({ timerRunning });
-  //   } else if (message.command === 'getTime') {
-  //     chrome.storage.local.get(['timeElapsed', 'timerRunning'], (data) => {
-  //       sendResponse({ timeElapsed: data.timeElapsed, timerRunning: data.timerRunning });
-  //     });
-  //     return true; // Keep the message channel open for the response
-  //   }
-  // });
