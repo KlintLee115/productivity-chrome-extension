@@ -1,41 +1,20 @@
-let timerRunning = false;
+let startTime
 
 // This should be called when your extension is installed or started.
-chrome.runtime.onConnect.addListener(port => {
+chrome.runtime.onInstalled.addListener(() => console.log('Extension installed or updated foo'))
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
-  // port.onAlarm.addListener((alarm) => {
-  //   if (alarm.name === "timer" && timerRunning) {
-  //     chrome.storage.local.get("timeElapsed", (data) => {
-  //       let timeElapsed = data.timeElapsed || 0;
-  //       timeElapsed += 1;
-  //       chrome.storage.local.set({ timeElapsed });
-  //     });
-  //   }
-  // });
+  // Log the message for debugging purposes.
+  console.log('Received message:', message);
+  const command = message.command
 
-  // chrome.storage.local.set({ timeElapsed: 0, timerRunning: false });
-  // chrome.alarms.create("timer", { periodInMinutes: 1 / 60 });
-
-  // Listen for messages from other parts of the extension.
-  // port.onMessage.addListener((message, sender, sendResponse) => {
-  //   if (message.command === 'toggleTimer') {
-  //     timerRunning = !timerRunning;
-  //     chrome.storage.local.set({ timerRunning });
-  //   } else if (message.command === 'getTime') {
-  //     chrome.storage.local.get(['timeElapsed', 'timerRunning'], (data) => {
-  //       sendResponse({ timeElapsed: data.timeElapsed, timerRunning: data.timerRunning });
-  //     });
-  //     return true; // Keep the message channel open for the response
-  //   }
-  // });
-  let bkg = chrome.extension.getBackgroundPage();
-  bkg.console.log('foo');})
-
-  /*
-IMPORTANT!
-
-DELETED "background": {
-    "service_worker": "serviceWorker.js"
-  } from manifest.json
-  */
+  if (command === 'resetStartTime') {
+    startTime = new Date()
+  }
+  else if (command === 'getTime') {
+    let timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+    timeElapsed = Number.isNaN(timeElapsed) ? 0 : timeElapsed
+    sendResponse({timeElapsed: timeElapsed})
+  }
+});

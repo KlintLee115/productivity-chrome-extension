@@ -1,14 +1,70 @@
 import { useEffect, useRef, useState } from 'react'
 import './index.css'
 
-function Main({ changePage }: {  changePage: (pageName: string) => void}): JSX.Element {
+type MainProps = { changePage: (pageName: string) => void };
 
-  return (
-    <div className='flex'>
-      <p className='text-2xl mx-auto w-fit'>Stay productive</p>
-      <button onClick={() => changePage('Options')} className="cursor-pointer fa fa-gear text-2xl"></button>
-    </div>
+function Main({ changePage }: MainProps): JSX.Element {
+
+  const [timeElapsed, setTimeElapsed] = useState<number>(NaN)
+  const [isTimerStopped, setIsTimerStopped] = useState<boolean>(true)
+  const intervalRef = useRef<number>(NaN)
+
+  const resetTimer = () => {
+    setTimeElapsed(0)
+    chrome.runtime.sendMessage({ command: 'resetStartTime' })
+  }
+
+  const stopTimer = () => {
+    setIsTimerStopped(true)
+    clearInterval(intervalRef.current)
+  }
+
+  function startTimer() {
+    setIsTimerStopped(false)
+    intervalRef.current = setInterval(() => {
+      setTimeElapsed(time => Number.isNaN(time) ? 1 : time + 1)
+    }, 1000)
+  }
+
+
+  useEffect(() => {
+
+    (async () => {
+      const { timeElapsed } = await chrome.runtime.sendMessage({ command: 'getTime' })
+      setTimeElapsed(timeElapsed)
+      timeElapsed !== 0 && startTimer()
+    })()
+
+    return () => { intervalRef.current && stopTimer() }
+  }, [])
+
+  return Number.isNaN(timeElapsed) ? (
+    <>
+      <p className='text-base mx-auto w-fit'>Productivity</p>
+      <p className='text-base'>Time elapsed: 0s</p>
+      <div className='flex items-center mt-[3vh]'>
+        <button style={{ flexGrow: 4 }} className={'text-xl bg-gray-500'}>Start</button>
+        <i onClick={() => changePage('Options')} className="cursor-pointer fa fa-gear text-2xl"></i>
+      </div>
+    </>
   )
+    : (
+      <>
+        <p className='text-base mx-auto w-fit'>Productivity</p>
+        <p className='text-base'>Time elapsed: {timeElapsed}s</p>
+        <div className='flex items-center mt-[3vh]'>
+          <button style={{ flexGrow: 4 }} onClick={() => {
+            if (isTimerStopped) {
+              resetTimer()
+              startTimer()
+            } else {
+              stopTimer()
+            }
+          }} className={`text-xl ${isTimerStopped ? 'bg-green-300' : 'bg-red-500'}`}>{isTimerStopped ? "Start" : "Stop"}</button>
+          <i onClick={() => changePage('Options')} className="cursor-pointer fa fa-gear text-2xl"></i>
+        </div>
+      </>
+    )
 }
 
 function Options({ changePage }: { changePage: (page: string) => void }): JSX.Element {
@@ -37,8 +93,8 @@ function Options({ changePage }: { changePage: (page: string) => void }): JSX.El
   }, [allowedWebsites]);
 
   return <>
-    <p className='text-4xl cursor-pointer' style={{lineHeight:"2rem"}} onClick={() => changePage('Main')}>&#x2190;</p>
-    <div className='flex justify-between my-[5vh]'>
+    <p className='text-xl' onClick={() => changePage('Main')}>Back</p>
+    <div className='flex justify-between mt-[5vh]'>
       <h2 className='text-lg'>Allowed websites</h2>
       <p className='text-lg cursor-pointer' onClick={() => setIsEnableAddAllowedUrlInput(true)}>+</p>
     </div>
@@ -63,7 +119,7 @@ function App() {
 
   switch (currentPage) {
     case 'Main':
-      PageComponent = <Main changePage={changePage}/>;
+      PageComponent = <Main changePage={changePage} />;
       break;
     case 'Options':
       PageComponent = <Options changePage={changePage} />;
