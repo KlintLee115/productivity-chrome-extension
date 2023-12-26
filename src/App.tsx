@@ -3,6 +3,11 @@ import './index.css'
 
 type MainProps = { changePage: (pageName: string) => void };
 
+enum Page {
+  Main = "MAIN", 
+  Options = "OPTIONS"
+}
+
 function Main({ changePage }: MainProps): JSX.Element {
 
   const [timeElapsed, setTimeElapsed] = useState<number>(NaN)
@@ -61,7 +66,7 @@ function Main({ changePage }: MainProps): JSX.Element {
               stopTimer()
             }
           }} className={`text-xl ${isTimerStopped ? 'bg-green-300' : 'bg-red-500'}`}>{isTimerStopped ? "Start" : "Stop"}</button>
-          <i onClick={() => changePage('Options')} className="cursor-pointer fa fa-gear text-2xl"></i>
+          <i onClick={() => changePage(Page.Options)} className="cursor-pointer fa fa-gear text-2xl"></i>
         </div>
       </>
     )
@@ -93,7 +98,8 @@ function Options({ changePage }: { changePage: (page: string) => void }): JSX.El
   }, [allowedWebsites]);
 
   return <>
-    <p className='text-xl' onClick={() => changePage('Main')}>Back</p>
+    <p className='text-4xl cursor-pointer' style={{lineHeight:"2rem"}} onClick={() => changePage(Page.Main)}>&#x2190;</p>
+
     <div className='flex justify-between mt-[5vh]'>
       <h2 className='text-lg'>Allowed websites</h2>
       <p className='text-lg cursor-pointer' onClick={() => setIsEnableAddAllowedUrlInput(true)}>+</p>
@@ -111,22 +117,11 @@ function Options({ changePage }: { changePage: (page: string) => void }): JSX.El
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<string>('Main');
+  const [currentPage, setCurrentPage] = useState<string>(Page.Main);
 
   const changePage = (pageName: string) => setCurrentPage(pageName)
 
-  let PageComponent: JSX.Element;
-
-  switch (currentPage) {
-    case 'Main':
-      PageComponent = <Main changePage={changePage} />;
-      break;
-    case 'Options':
-      PageComponent = <Options changePage={changePage} />;
-      break;
-    default:
-      PageComponent = <div>Page not found</div>;
-  }
+  const PageComponent = currentPage === Page.Main ?  <Main changePage={changePage} /> : <Options changePage={changePage} />
 
   return (
     <div className='bg-orange-200 px-[2vw] w-[15rem] max-h-[20rem]'>
