@@ -4,7 +4,7 @@ import './index.css'
 type MainProps = { changePage: (pageName: string) => void };
 
 enum Page {
-  Main = "MAIN", 
+  Main = "MAIN",
   Options = "OPTIONS"
 }
 
@@ -14,17 +14,20 @@ function Main({ changePage }: MainProps): JSX.Element {
   const [isTimerStopped, setIsTimerStopped] = useState<boolean>(true)
   const intervalRef = useRef<number>(NaN)
 
-  const resetTimer = () => {
-    setTimeElapsed(0)
-    chrome.runtime.sendMessage({ command: 'resetStartTime' })
-  }
-
-  const stopTimer = () => {
+  function stopTimer() {
     setIsTimerStopped(true)
+    chrome.runtime.sendMessage({ command: 'stopTimer' })
     clearInterval(intervalRef.current)
   }
 
   function startTimer() {
+    chrome.runtime.sendMessage({ command: 'startTimer' })
+    setTimeElapsed(0)
+    unPauseTimer()
+  }
+
+  function unPauseTimer() {
+    chrome.runtime.sendMessage({ command: 'unPauseTimer' })
     setIsTimerStopped(false)
     intervalRef.current = setInterval(() => {
       setTimeElapsed(time => Number.isNaN(time) ? 1 : time + 1)
@@ -36,11 +39,12 @@ function Main({ changePage }: MainProps): JSX.Element {
 
     (async () => {
       const { timeElapsed } = await chrome.runtime.sendMessage({ command: 'getTime' })
+      const { isTimerStopped } = await chrome.runtime.sendMessage({ command: 'isTimerStopped' })
       setTimeElapsed(timeElapsed)
-      timeElapsed !== 0 && startTimer()
-    })()
+      setIsTimerStopped(isTimerStopped)
 
-    return () => { intervalRef.current && stopTimer() }
+      !isTimerStopped && unPauseTimer()
+    })()
   }, [])
 
   return Number.isNaN(timeElapsed) ? (
@@ -60,7 +64,6 @@ function Main({ changePage }: MainProps): JSX.Element {
         <div className='flex items-center mt-[3vh]'>
           <button style={{ flexGrow: 4 }} onClick={() => {
             if (isTimerStopped) {
-              resetTimer()
               startTimer()
             } else {
               stopTimer()
@@ -98,7 +101,7 @@ function Options({ changePage }: { changePage: (page: string) => void }): JSX.El
   }, [allowedWebsites]);
 
   return <>
-    <p className='text-4xl cursor-pointer' style={{lineHeight:"2rem"}} onClick={() => changePage(Page.Main)}>&#x2190;</p>
+    <p className='text-4xl cursor-pointer' style={{ lineHeight: "2rem" }} onClick={() => changePage(Page.Main)}>&#x2190;</p>
 
     <div className='flex justify-between mt-[5vh]'>
       <h2 className='text-lg'>Allowed websites</h2>
@@ -121,7 +124,7 @@ function App() {
 
   const changePage = (pageName: string) => setCurrentPage(pageName)
 
-  const PageComponent = currentPage === Page.Main ?  <Main changePage={changePage} /> : <Options changePage={changePage} />
+  const PageComponent = currentPage === Page.Main ? <Main changePage={changePage} /> : <Options changePage={changePage} />
 
   return (
     <div className='bg-orange-200 px-[2vw] w-[15rem] max-h-[20rem]'>

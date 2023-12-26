@@ -1,7 +1,14 @@
 let startTime
+let isTimerStopped
+let timeElapsed
 
 // This should be called when your extension is installed or started.
-chrome.runtime.onInstalled.addListener(() => console.log('Extension installed or updated foo'))
+chrome.runtime.onInstalled.addListener(() => {
+  startTime = NaN
+  isTimerStopped = true
+  timeElapsed = NaN
+  console.log('Extension installed or updated foo')
+})
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
@@ -9,12 +16,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
   const command = message.command
 
-  if (command === 'resetStartTime') {
-    startTime = new Date()
-  }
-  else if (command === 'getTime') {
-    let timeElapsed = Math.floor((Date.now() - startTime) / 1000);
-    timeElapsed = Number.isNaN(timeElapsed) ? 0 : timeElapsed
-    sendResponse({timeElapsed: timeElapsed})
+  switch (command) {
+    case 'startTimer':
+      startTime = new Date()
+      timeElapsed = 0
+      isTimerStopped = false
+      break
+
+    case 'unPauseTimer':
+      isTimerStopped = false
+      break
+
+    case 'stopTimer':
+      isTimerStopped = true
+      timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+      break
+
+    case 'isTimerStopped':
+      sendResponse({ isTimerStopped: isTimerStopped })
+      break
+
+    case 'getTime':
+      if (isNaN(startTime)) {
+        sendResponse({ timeElapsed: 0 })
+      }
+      else if (isTimerStopped) {
+        sendResponse({ timeElapsed: timeElapsed })
+      }
+      else {
+        sendResponse({ timeElapsed: Math.floor((Date.now() - startTime) / 1000) })
+      }
   }
 });
