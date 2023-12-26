@@ -37,12 +37,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break
 
     case 'getTime':
+
+      // initial state
       if (isNaN(startTime)) {
         sendResponse({ timeElapsed: 0 })
       }
+
       else if (isTimerStopped) {
         sendResponse({ timeElapsed: timeElapsed })
       }
+
+      // the program is still running
       else {
         sendResponse({ timeElapsed: Math.floor((Date.now() - startTime) / 1000) })
       }
