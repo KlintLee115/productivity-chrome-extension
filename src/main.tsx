@@ -42,16 +42,15 @@ function Main({ changePage }: MainProps): JSX.Element {
     }, 1000)
   }
 
-
   useEffect(() => {
 
     (async () => {
-      const { timeElapsed } = await chrome.runtime.sendMessage({ command: 'getTime' })
       const { isTimerStopped } = await chrome.runtime.sendMessage({ command: 'isTimerStopped' })
-      setTimeElapsed(timeElapsed)
+      const { timeElapsed } = await chrome.runtime.sendMessage({ command: 'getTime' })
       setIsTimerStopped(isTimerStopped)
+      setTimeElapsed(timeElapsed)
 
-      !isTimerStopped && unPauseTimer()
+      if (!isTimerStopped) unPauseTimer()
     })()
   }, [])
 
@@ -63,14 +62,15 @@ function Main({ changePage }: MainProps): JSX.Element {
         <button style={{ flexGrow: 4 }} className={'text-xl bg-gray-500'}>Start</button>
         <i onClick={() => changePage('Options')} className="cursor-pointer fa fa-gear text-2xl"></i>
       </div>
+      <button>ADD URL</button>
     </>
   )
     : (
       <>
         <p className='text-base mx-auto w-fit'>Productivity</p>
         <p className='text-base'>Time elapsed: {timeElapsed}s</p>
-        <div className='flex items-center mt-[3vh]'>
-          <button style={{ flexGrow: 4 }} onClick={() => {
+        <div className='flex items-center mt-[3vh] gap-[2vw]'>
+          <button style={{ flexGrow: 1 }} onClick={() => {
             if (isTimerStopped) {
               startTimer()
             } else {
@@ -90,40 +90,56 @@ function Options({ changePage }: { changePage: (page: string) => void }): JSX.El
 
   const newUrlInput = useRef<HTMLInputElement | null>(null)
 
-  const addSiteAsAllowed = () => {
-    const newSite = newUrlInput.current?.value;
-    if (newSite) {
-      const newAllowedWebsites = [...allowedWebsites, newSite];
-      chrome.storage.local.set({ 'allowedWebsites': newAllowedWebsites });
-    }
+  const addSiteAsAllowed = (url: string) => {
+    const urlObject = new URL(url);
+    const baseUrl = `${urlObject.protocol}//${urlObject.hostname}`
+    const newAllowedWebsites = [...allowedWebsites, baseUrl];
+    setAllowedWebsites(newAllowedWebsites)
+    chrome.storage.local.set({ 'allowedWebsites': newAllowedWebsites });
   };
+
+  const addSiteFromInput = () => {
+    const newSite = newUrlInput.current?.value;
+    if (newSite) addSiteAsAllowed(newSite)
+  }
+
+  const addCurrentTabUrlToStorage = () => {
+    // Use chrome.tabs.query to get the current tab's URL
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      const currentTab = tabs[0];
+      if (currentTab && currentTab.url) addSiteAsAllowed(currentTab.url)
+    })
+  }
 
   const removeUrl = (index: number) => {
     const updatedAllowedWebsites = [...allowedWebsites];
     updatedAllowedWebsites.splice(index, 1); // Remove the item at the specified index
+    setAllowedWebsites(updatedAllowedWebsites)
     chrome.storage.local.set({ 'allowedWebsites': updatedAllowedWebsites });
   }
 
   useEffect(() => {
     chrome.storage.local.get(['allowedWebsites'], result => result.allowedWebsites && setAllowedWebsites(result.allowedWebsites))
-  }, [allowedWebsites]);
+  }, []);
 
   return <>
-    <p className='text-4xl cursor-pointer' style={{ lineHeight: "2rem" }} onClick={() => changePage(Page.Main)}>&#x2190;</p>
-
+    <div className='flex justify-between'>
+      <p className='text-4xl cursor-pointer' style={{ lineHeight: "2rem" }} onClick={() => changePage(Page.Main)}>&#x2190;</p>
+      <button className='text-lg' onClick={addCurrentTabUrlToStorage}>Add current URL</button>
+    </div>
     <div className='flex justify-between mt-[5vh]'>
       <h2 className='text-lg'>Allowed websites</h2>
       <p className='text-lg cursor-pointer' onClick={() => setIsEnableAddAllowedUrlInput(true)}>+</p>
     </div>
     {allowedWebsites.map((url, index) => (
       <div className='flex justify-between'>
-        <p className='text-lg' key={url}>{url}</p>
+        <p className='text-lg max-w-[90%] overflow-hidden whitespace-nowrap' key={url}>{url}</p>
         <p className='text-lg cursor-pointer' onClick={() => removeUrl(index)}>X</p>
       </div>))
     }
 
     <input ref={newUrlInput} className={`${enableAddAllowedUrlInput ? "inline" : "hidden"}`} type='text'></input>
-    <p onClick={addSiteAsAllowed} className={`cursor-pointer ml-[2vw] ${enableAddAllowedUrlInput ? "inline" : "hidden"}`}>V</p>
+    <p onClick={addSiteFromInput} className={`cursor-pointer ml-[2vw] ${enableAddAllowedUrlInput ? "inline" : "hidden"}`}>V</p>
   </>
 }
 

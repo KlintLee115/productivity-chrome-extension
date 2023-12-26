@@ -20,11 +20,7 @@
     }
   ],
   "permissions": [
-    "storage",
-    "alarms"
-  ],
-  "host_permissions": [
-    "https://*/"
+    "storage"
   ],
   "background": {
     "service_worker": "serviceWorker.js"
