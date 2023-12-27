@@ -3,10 +3,14 @@ import ReactDOM from 'react-dom/client'
 import { useEffect, useRef, useState } from 'react'
 import './index.css'
 
+enum Page {
+  Main = "MAIN",
+  Options = "OPTIONS"
+}
+
 const addSiteAsAllowed = (url: string, allowedWebsites: string[], setAllowedWebsites:React.Dispatch<React.SetStateAction<string[]>>) => {
-  const urlObject = new URL(url);
-  const baseUrl = `${urlObject.protocol}//${urlObject.hostname}`
-  const newAllowedWebsites = [...allowedWebsites!!, baseUrl];
+  const baseUrl = new URL(url).origin;
+  const newAllowedWebsites = [...allowedWebsites, baseUrl];
   setAllowedWebsites(newAllowedWebsites)
   chrome.storage.local.set({ 'allowedWebsites': newAllowedWebsites });
 };
@@ -26,14 +30,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 )
 
-type MainProps = { changePage: (pageName: string) => void };
 
-enum Page {
-  Main = "MAIN",
-  Options = "OPTIONS"
-}
-
-function Main({ changePage }: MainProps): JSX.Element {
+function Main({ changePage }: { changePage: (pageName: string) => void }): JSX.Element {
 
   const [allowedWebsites, setAllowedWebsites] = useState<string[]>([])
 
@@ -73,8 +71,8 @@ function Options({ changePage }: { changePage: (page: string) => void }): JSX.El
   }
 
   useEffect(() => {
-    chrome.storage.local.get(['allowedWebsites'], result => {
-      result.allowedWebsites && setAllowedWebsites(result.allowedWebsites)
+    chrome.storage.local.get(['allowedWebsites'], ({allowedWebsites}) => {
+      allowedWebsites && setAllowedWebsites(allowedWebsites)
     })
   }, []);
 
